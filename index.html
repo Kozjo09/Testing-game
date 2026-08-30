@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Apex Vanguard 3D - Dual Stick Combat</title>
+  <title>Apex Vanguard 3D - Tactical Tank Warfare</title>
   <style>
     * {
       box-sizing: border-box;
@@ -17,7 +17,7 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background-color: #0d1117;
+      background-color: #0a0f1d;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       color: #fff;
     }
@@ -50,27 +50,27 @@
       width: 100%;
     }
     .hud-box {
-      background: rgba(15, 23, 42, 0.75);
+      background: rgba(15, 23, 42, 0.85);
       border: 1px solid rgba(56, 189, 248, 0.4);
       border-radius: 12px;
-      padding: 12px 20px;
+      padding: 12px 18px;
       backdrop-filter: blur(8px);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
     }
     .hud-title {
-      font-size: 12px;
+      font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 1.5px;
       color: #94a3b8;
       margin-bottom: 4px;
     }
     .hud-value {
-      font-size: 24px;
+      font-size: 22px;
       font-weight: bold;
       color: #38bdf8;
     }
     .health-bar-container {
-      width: 200px;
+      width: 180px;
       height: 16px;
       background: rgba(30, 41, 59, 0.8);
       border-radius: 8px;
@@ -84,22 +84,36 @@
       background: linear-gradient(90deg, #ef4444, #f87171);
       transition: width 0.2s ease;
     }
+    #radar-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px;
+    }
+    #radar-canvas {
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      background: rgba(10, 15, 29, 0.9);
+      border: 2px solid rgba(56, 189, 248, 0.6);
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+    }
     #controls-hint {
       position: absolute;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(15, 23, 42, 0.75);
+      background: rgba(15, 23, 42, 0.8);
       border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 20px;
       padding: 8px 18px;
-      font-size: 13px;
+      font-size: 12px;
       color: #cbd5e1;
       backdrop-filter: blur(6px);
       pointer-events: none;
       text-align: center;
     }
-    /* Mobile Touch Joysticks Overlay */
+    /* Touch Controls */
     #touch-controls {
       position: absolute;
       top: 0;
@@ -138,7 +152,7 @@
     .joystick-label {
       position: absolute;
       top: -25px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       letter-spacing: 1px;
       color: #94a3b8;
@@ -170,7 +184,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(15, 23, 42, 0.9);
+      background: rgba(10, 15, 29, 0.92);
       z-index: 100;
       display: flex;
       flex-direction: column;
@@ -182,22 +196,39 @@
       display: none;
     }
     .modal-card {
-      background: rgba(30, 41, 59, 0.9);
+      background: rgba(30, 41, 59, 0.95);
       border: 1px solid rgba(56, 189, 248, 0.5);
       border-radius: 16px;
       padding: 30px 40px;
       text-align: center;
-      max-width: 360px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+      min-width: 320px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
     }
     .modal-card h1 {
       margin-top: 0;
       color: #ef4444;
       font-size: 32px;
+      letter-spacing: 2px;
+    }
+    .stats-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 12px 0;
+      font-size: 15px;
+      color: #cbd5e1;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 6px;
+    }
+    .stats-label {
+      color: #94a3b8;
+    }
+    .stats-val {
+      font-weight: bold;
+      color: #38bdf8;
     }
     .restart-btn {
       margin-top: 20px;
-      padding: 12px 28px;
+      padding: 12px 32px;
       font-size: 16px;
       font-weight: bold;
       color: #0f172a;
@@ -226,14 +257,20 @@
           <div id="health-bar" class="health-bar-fill"></div>
         </div>
       </div>
+
+      <div class="hud-box" id="radar-container">
+        <div class="hud-title">Tactical Radar</div>
+        <canvas id="radar-canvas" width="130" height="130"></canvas>
+      </div>
+
       <div class="hud-box" style="text-align: right;">
         <div class="hud-title">Score</div>
         <div id="score-display" class="hud-value">0</div>
       </div>
     </div>
+
     <div id="controls-hint">
-      Desktop: WASD / Arrows to Move | Mouse to Aim & Click to Fire<br/>
-      Mobile: Left Stick = Move | Right Stick = Aim & Auto/Button Fire
+      WASD / Arrows to Move | Mouse to Aim & Fire | Touch Sticks on Mobile
     </div>
   </div>
 
@@ -253,9 +290,20 @@
 
   <div id="game-over-modal" class="hidden">
     <div class="modal-card">
-      <h1 id="modal-title">GAME OVER</h1>
-      <p id="final-score-text" style="color: #cbd5e1; font-size: 18px;">Final Score: 0</p>
-      <button id="restart-button" class="restart-btn">PLAY AGAIN</button>
+      <h1 id="modal-title">TANK DESTROYED</h1>
+      <div class="stats-row">
+        <span class="stats-label">Final Score:</span>
+        <span id="final-score-val" class="stats-val">0</span>
+      </div>
+      <div class="stats-row">
+        <span class="stats-label">Enemies Eliminated:</span>
+        <span id="kills-val" class="stats-val">0</span>
+      </div>
+      <div class="stats-row">
+        <span class="stats-label">Accuracy:</span>
+        <span id="accuracy-val" class="stats-val">0%</span>
+      </div>
+      <button id="restart-button" class="restart-btn">DEPLOY AGAIN</button>
     </div>
   </div>
 
