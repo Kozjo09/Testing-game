@@ -1,4 +1,4 @@
-import { DualInputManager } from './controls.js';
+import { DualInputManager, toggleFullscreen, isFullscreenActive } from './controls.js';
 import { GameEngine } from './game.js';
 
 export function renderRadar(canvas, game) {
@@ -90,6 +90,29 @@ document.addEventListener('DOMContentLoaded', () => {
   const accuracyVal = document.getElementById('accuracy-val');
   const restartButton = document.getElementById('restart-button');
 
+  // Fullscreen button setup
+  const fullscreenBtn = document.getElementById('fullscreen-btn');
+  if (fullscreenBtn) {
+    const updateFsIcon = () => {
+      fullscreenBtn.textContent = isFullscreenActive() ? 'EXIT FULLSCREEN' : 'FULLSCREEN';
+    };
+    fullscreenBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleFullscreen(document.documentElement);
+      setTimeout(updateFsIcon, 100);
+    });
+    document.addEventListener('fullscreenchange', updateFsIcon);
+    document.addEventListener('webkitfullscreenchange', updateFsIcon);
+  }
+
+  // Tap canvas or document overlay to enter fullscreen on mobile if not active
+  document.body.addEventListener('touchend', (e) => {
+    // Only auto-trigger if tapping interactive non-button area
+    if (!isFullscreenActive() && e.target && !e.target.closest('button, input, #touch-controls')) {
+      toggleFullscreen(document.documentElement);
+    }
+  }, { passive: true });
+
   // Input Manager
   const inputManager = new DualInputManager({
     moveZone,
@@ -104,9 +127,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // Game Engine
   const game = new GameEngine(canvas);
 
-  // Resize handler
-  window.addEventListener('resize', () => {
+  // Resize & Orientation Change handler
+  const handleResize = () => {
     game.resize(window.innerWidth, window.innerHeight);
+  };
+  window.addEventListener('resize', handleResize);
+  window.addEventListener('orientationchange', () => {
+    setTimeout(handleResize, 100);
   });
 
   // Restart Handler

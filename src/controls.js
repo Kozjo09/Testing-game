@@ -274,3 +274,51 @@ export class DualInputManager {
     );
   }
 }
+
+
+export function isFullscreenActive() {
+  if (typeof document === 'undefined') return false;
+  return !!(
+    document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    document.mozFullScreenElement ||
+    document.msFullscreenElement
+  );
+}
+
+export function toggleFullscreen(element = document.documentElement) {
+  if (typeof document === 'undefined') return false;
+
+  if (!isFullscreenActive()) {
+    const req =
+      element.requestFullscreen ||
+      element.webkitRequestFullscreen ||
+      element.mozRequestFullScreen ||
+      element.msRequestFullscreen;
+    if (req) {
+      try {
+        const p = req.call(element);
+        if (p && p.catch) p.catch(() => {});
+      } catch (err) {}
+    }
+    if (typeof screen !== 'undefined' && screen.orientation && screen.orientation.lock) {
+      try {
+        screen.orientation.lock('landscape').catch(() => {});
+      } catch (err) {}
+    }
+    return true;
+  } else {
+    const exit =
+      document.exitFullscreen ||
+      document.webkitExitFullscreen ||
+      document.mozCancelFullScreen ||
+      document.msExitFullscreen;
+    if (exit) {
+      try {
+        const p = exit.call(document);
+        if (p && p.catch) p.catch(() => {});
+      } catch (err) {}
+    }
+    return false;
+  }
+}

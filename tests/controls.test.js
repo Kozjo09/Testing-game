@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { calculateJoystickVector, DualInputManager } from '../src/controls.js';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { calculateJoystickVector, DualInputManager, isFullscreenActive, toggleFullscreen } from '../src/controls.js';
 
 describe('Joystick vector math', () => {
   it('returns zero vector if touches are missing or identical', () => {
@@ -67,5 +67,18 @@ describe('DualInputManager', () => {
     expect(aim.y).toBeCloseTo(0);
     expect(aim.isTouchAiming).toBe(true);
     expect(inputManager.getFiring()).toBe(true); // touch aim magnitude > 0.5 triggers firing
+  });
+});
+
+describe('Fullscreen Helpers', () => {
+  it('correctly handles isFullscreenActive when windowed', () => {
+    expect(isFullscreenActive()).toBe(false);
+  });
+
+  it('returns boolean state during toggleFullscreen call', () => {
+    const mockElem = {
+      requestFullscreen: () => Promise.resolve()
+    };
+    expect(typeof toggleFullscreen(mockElem)).toBe('boolean');
   });
 });
