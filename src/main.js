@@ -13,7 +13,7 @@ export function renderRadar(canvas, game) {
   ctx.clearRect(0, 0, w, h);
 
   // Background radar grid
-  ctx.fillStyle = '#0a0f1d';
+  ctx.fillStyle = '#050811';
   ctx.beginPath();
   ctx.arc(center, center, center - 2, 0, Math.PI * 2);
   ctx.fill();
@@ -37,13 +37,13 @@ export function renderRadar(canvas, game) {
     ctx.fillRect(rx - rw / 2, ry - rh / 2, rw, rh);
   });
 
-  // Draw Enemies (Red Dots)
-  ctx.fillStyle = '#ef4444';
+  // Draw Enemies (Red Dots / Yellow Boss)
   game.enemies.forEach((e) => {
     const ex = center + e.tankData.group.position.x * scale;
     const ey = center + e.tankData.group.position.z * scale;
+    ctx.fillStyle = e.isBoss ? '#f59e0b' : '#ef4444';
     ctx.beginPath();
-    ctx.arc(ex, ey, e.type === 'heavy' ? 4 : 3, 0, Math.PI * 2);
+    ctx.arc(ex, ey, e.isBoss ? 7 : (e.type === 'heavy' ? 4 : 3), 0, Math.PI * 2);
     ctx.fill();
   });
 
@@ -57,7 +57,6 @@ export function renderRadar(canvas, game) {
     ctx.arc(px, py, 4, 0, Math.PI * 2);
     ctx.fill();
 
-    // Direction line
     const angle = game.playerData.group.rotation.y;
     ctx.strokeStyle = '#38bdf8';
     ctx.lineWidth = 2;
@@ -75,6 +74,25 @@ document.addEventListener('DOMContentLoaded', () => {
   // DOM elements for HUD
   const healthBar = document.getElementById('health-bar');
   const scoreDisplay = document.getElementById('score-display');
+  const ammoCountDisplay = document.getElementById('ammo-count');
+  const reloadBarFill = document.getElementById('reload-bar');
+  const reloadBtn = document.getElementById('reload-btn');
+
+  // Boss HUD
+  const bossHudContainer = document.getElementById('boss-hud-container');
+  const bossHealthBar = document.getElementById('boss-health-bar');
+
+  // Roblox Settings & Camera Toggle Buttons
+  const settingsToggleBtn = document.getElementById('settings-toggle-btn');
+  const fpToggleBtn = document.getElementById('fp-toggle-btn');
+  const fpReticle = document.getElementById('fp-reticle');
+
+  // Settings Modal
+  const settingsModal = document.getElementById('settings-modal');
+  const settingCamBtn = document.getElementById('setting-cam-btn');
+  const settingAudioBtn = document.getElementById('setting-audio-btn');
+  const settingGraphics = document.getElementById('setting-graphics');
+  const closeSettingsBtn = document.getElementById('close-settings-btn');
 
   // Touch control elements
   const moveZone = document.getElementById('move-joystick-zone');
@@ -105,10 +123,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('webkitfullscreenchange', updateFsIcon);
   }
 
-  // Tap canvas or document overlay to enter fullscreen on mobile if not active
   document.body.addEventListener('touchend', (e) => {
-    // Only auto-trigger if tapping interactive non-button area
-    if (!isFullscreenActive() && e.target && !e.target.closest('button, input, #touch-controls')) {
+    if (!isFullscreenActive() && e.target && !e.target.closest('button, input, select, #touch-controls, #settings-modal')) {
       toggleFullscreen(document.documentElement);
     }
   }, { passive: true });
@@ -127,7 +143,81 @@ document.addEventListener('DOMContentLoaded', () => {
   // Game Engine
   const game = new GameEngine(canvas);
 
-  // Resize & Orientation Change handler
+  // Wire Reload Button
+  if (reloadBtn) {
+    reloadBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      game.startReload();
+    });
+  }
+
+  // Camera Mode Toggle Function
+  const updateCameraUI = () => {
+    if (settingCamBtn) {
+      settingCamBtn.textContent = game.cameraMode === '1st' ? '1st Person (Gunner Optic)' : '3rd Person (Chassis)';
+    }
+    if (fpReticle) {
+      if (game.cameraMode === '1st') {
+        fpReticle.classList.add('active');
+      } else {
+        fpReticle.classList.remove('active');
+      }
+    }
+  };
+
+  if (fpToggleBtn) {
+    fpToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      game.toggleCameraMode();
+      updateCameraUI();
+    });
+  }
+
+  if (settingCamBtn) {
+    settingCamBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      game.toggleCameraMode();
+      updateCameraUI();
+    });
+  }
+
+  // Settings Modal Toggle
+  if (settingsToggleBtn) {
+    settingsToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      settingsModal.classList.remove('hidden');
+    });
+  }
+
+  if (closeSettingsBtn) {
+    closeSettingsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      settingsModal.classList.add('hidden');
+    });
+  }
+
+  if (settingAudioBtn) {
+    settingAudioBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      game.audioEnabled = !game.audioEnabled;
+      settingAudioBtn.textContent = game.audioEnabled ? 'Enabled' : 'Muted';
+    });
+  }
+
+  if (settingGraphics) {
+    settingGraphics.addEventListener('change', () => {
+      const val = settingGraphics.value;
+      if (val === 'ultra') {
+        game.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      } else if (val === 'high') {
+        game.renderer.setPixelRatio(1.25);
+      } else {
+        game.renderer.setPixelRatio(1.0);
+      }
+    });
+  }
+
+  // Resize handler
   const handleResize = () => {
     game.resize(window.innerWidth, window.innerHeight);
   };
@@ -148,8 +238,17 @@ document.addEventListener('DOMContentLoaded', () => {
   function animate(now) {
     requestAnimationFrame(animate);
 
-    const delta = Math.min((now - lastTime) / 1000, 0.1); // clamp delta
+    const delta = Math.min((now - lastTime) / 1000, 0.1);
     lastTime = now;
+
+    // Check keyboard shortcuts for Reload and Camera Toggle
+    if (inputManager.checkReloadRequested()) {
+      game.startReload();
+    }
+    if (inputManager.checkCameraToggleRequested()) {
+      game.toggleCameraMode();
+      updateCameraUI();
+    }
 
     const moveInput = inputManager.getMoveInput();
     const aimInput = inputManager.getAimInput();
@@ -157,15 +256,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     game.update(delta, moveInput, aimInput, isFiring);
 
-    // Update UI HUD
+    // Update Health
     if (healthBar) {
       healthBar.style.width = `${Math.max(0, game.health)}%`;
     }
+
+    // Update Ammo & Reload Bar
+    if (ammoCountDisplay) {
+      ammoCountDisplay.textContent = game.isReloading ? 'RELOADING...' : `${game.ammoCount} / ${game.ammoMax}`;
+    }
+    if (reloadBarFill) {
+      reloadBarFill.style.width = `${Math.floor(game.reloadProgress * 100)}%`;
+    }
+
+    // Update Boss Health Bar
+    if (bossHudContainer) {
+      if (game.bossObj) {
+        bossHudContainer.classList.add('active');
+        if (bossHealthBar) {
+          const bossPct = Math.max(0, (game.bossObj.health / game.bossObj.maxHealth) * 100);
+          bossHealthBar.style.width = `${bossPct}%`;
+        }
+      } else {
+        bossHudContainer.classList.remove('active');
+      }
+    }
+
     if (scoreDisplay) {
       scoreDisplay.textContent = Math.floor(game.score);
     }
 
-    // Render Minimap / Radar
     if (radarCanvas) {
       renderRadar(radarCanvas, game);
     }

@@ -48,7 +48,6 @@ describe('DualInputManager', () => {
   });
 
   it('processes touch move and aim joysticks simultaneously', () => {
-    // Simulate simultaneous touch move pointer and touch aim pointer
     inputManager.moveStartPos = { clientX: 100, clientY: 100 };
     inputManager.moveTouchId = 1;
     inputManager.updateJoystick('move', { pointerId: 1, clientX: 100, clientY: 50 }); // dy = -50 (up)
@@ -66,7 +65,21 @@ describe('DualInputManager', () => {
     expect(aim.x).toBeCloseTo(1);
     expect(aim.y).toBeCloseTo(0);
     expect(aim.isTouchAiming).toBe(true);
-    expect(inputManager.getFiring()).toBe(true); // touch aim magnitude > 0.5 triggers firing
+    expect(inputManager.getFiring()).toBe(true);
+  });
+
+  it('handles reload KeyR and camera KeyV triggers', () => {
+    expect(inputManager.checkReloadRequested()).toBe(false);
+    expect(inputManager.checkCameraToggleRequested()).toBe(false);
+
+    inputManager.handleKeyDown({ code: 'KeyR' });
+    expect(inputManager.checkReloadRequested()).toBe(true);
+    // Second check should reset flag
+    expect(inputManager.checkReloadRequested()).toBe(false);
+
+    inputManager.handleKeyDown({ code: 'KeyV' });
+    expect(inputManager.checkCameraToggleRequested()).toBe(true);
+    expect(inputManager.checkCameraToggleRequested()).toBe(false);
   });
 });
 

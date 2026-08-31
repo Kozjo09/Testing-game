@@ -68,8 +68,14 @@ export class DualInputManager {
       ArrowLeft: false,
       ArrowDown: false,
       ArrowRight: false,
-      Space: false
+      Space: false,
+      KeyR: false,
+      KeyV: false
     };
+
+    // Single trigger press flags
+    this.reloadPressed = false;
+    this.cameraTogglePressed = false;
 
     // Mouse aim target ground plane / mouse coords
     this.mouseScreenPos = { x: 0, y: 0 };
@@ -136,6 +142,10 @@ export class DualInputManager {
 
   handleKeyDown(e) {
     if (this.keys.hasOwnProperty(e.code)) {
+      if (!this.keys[e.code]) {
+        if (e.code === 'KeyR') this.reloadPressed = true;
+        if (e.code === 'KeyV') this.cameraTogglePressed = true;
+      }
       this.keys[e.code] = true;
     }
   }
@@ -272,6 +282,22 @@ export class DualInputManager {
       this.keys.Space ||
       Math.hypot(this.aimVector.x, this.aimVector.y) > 0.5
     );
+  }
+
+  checkReloadRequested() {
+    if (this.reloadPressed) {
+      this.reloadPressed = false;
+      return true;
+    }
+    return false;
+  }
+
+  checkCameraToggleRequested() {
+    if (this.cameraTogglePressed) {
+      this.cameraTogglePressed = false;
+      return true;
+    }
+    return false;
   }
 }
 
